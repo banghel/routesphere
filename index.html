@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RouteSphere Logistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+          font-family: 'Inter', sans-serif;
+          background-color: #ffffff;
+          color: #0f172a;
+          overflow-x: hidden;
+      }
+
+      /* --- Animations & Effects --- */
+      .reveal-on-scroll {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .reveal-on-scroll.is-visible {
+          opacity: 1;
+          transform: translateY(0);
+      }
+
+      /* Radar Pulse for Map */
+      @keyframes radar-pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+      }
+
+      /* Marquee Animation */
+      @keyframes scroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(calc(-250px * 5)); }
+      }
+      .slider {
+          animation: scroll 40s linear infinite;
+      }
+
+      /* Architectural Grid Pattern */
+      .bg-grid-slate {
+          background-size: 40px 40px;
+          background-image: linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+          mask-image: linear-gradient(to bottom, transparent, black, transparent);
+          -webkit-mask-image: linear-gradient(to bottom, transparent 5%, black 40%, black 70%, transparent 95%);
+      }
+
+      /* Utilities */
+      .text-huge {
+          font-size: clamp(3rem, 14vw, 14rem);
+          line-height: 0.8;
+          letter-spacing: -0.06em;
+      }
+
+      .glass-panel {
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+
+      .map-marker {
+          width: 12px;
+          height: 12px;
+          background-color: #dc2626;
+          border: 2px solid white;
+          border-radius: 50%;
+          position: absolute;
+          z-index: 10;
+          transition: transform 0.3s ease;
+      }
+      .map-marker:hover { transform: scale(1.5); cursor: pointer; }
+
+      .map-marker::after {
+          content: '';
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          width: 100%; height: 100%;
+          border-radius: 50%;
+          animation: radar-pulse 2s infinite;
+      }
+
+      /* Page Transitions */
+      .page-section {
+          display: none;
+          opacity: 0;
+          transition: opacity 0.5s ease;
+      }
+      .page-section.active {
+          display: block;
+          opacity: 1;
+      }
+
+      /* Add scan animation keyframe dynamically needed for map */
+      @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(500%); }
+      }
+
+      /* Timeline connector */
+      .timeline-connector {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: linear-gradient(to bottom, transparent, #e2e8f0, transparent);
+      }
+
+      /* Hover card lift */
+      .card-hover {
+          transition: all 0.3s ease;
+      }
+      .card-hover:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Counter animation */
+      @keyframes countUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Footer brand text */
+      .footer-brand-text {
+          font-size: clamp(4rem, 18vw, 16rem);
+          line-height: 0.85;
+          letter-spacing: -0.04em;
+      }
+    </style>
+  </head>
+  <body
+    class="antialiased text-slate-900 bg-white selection:bg-red-100 selection:text-red-900"
+  >
+    <!-- Navigation -->
+    <nav
+      class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100 transition-all duration-300"
+      id="navbar"
+    >
+      <div
+        class="max-w-[1400px] mx-auto px-6 h-16 flex justify-between items-center"
+      >
+        <!-- Logo -->
+        <div
+          onclick="switchPage('home')"
+          class="flex items-center gap-2 cursor-pointer group select-none"
+        >
+          <div
+            class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-sm tracking-tighter"
+          >
+            RS
+          </div>
+          <span class="text-sm font-semibold tracking-tight text-slate-900">
+            RouteSphere
+          </span>
+        </div>
+
+        <!-- Desktop Links -->
+        <div
+          class="hidden md:flex items-center gap-8 text-xs font-medium text-slate-500"
+        >
+          <button
+            onclick="switchPage('home')"
+            class="nav-link text-slate-900 hover:text-red-600 transition-colors"
+          >
+            Platform
+          </button>
+          <button
+            onclick="switchPage('solutions')"
+            class="nav-link hover:text-slate-900 transition-colors"
+          >
+            Services
+          </button>
+          <button
+            onclick="switchPage('network')"
+            class="nav-link hover:text-slate-900 transition-colors"
+          >
+            Network
+          </button>
+          <button
+            onclick="switchPage('company')"
+            class="nav-link hover:text-slate-900 transition-colors"
+          >
+            Company
+          </button>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-4">
+          <button
+            class="text-xs font-medium text-slate-600 hover:text-slate-900 hidden sm:block"
+          >
+            Log in
+          </button>
+          <button
+            class="bg-slate-900 text-white px-4 py-2 rounded-full text-xs font-medium hover:bg-red-600 hover:shadow-lg hover:shadow-red-600/20 transition-all duration-300"
+          >
+            Track Shipment
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- PAGE 1: HOME -->
+    <main id="home" class="page-section active pt-16">
+      <!-- Hero Section -->
+      <section
+        class="relative min-h-[90vh] flex flex-col justify-center overflow-hidden"
+      >
+        <!-- Background Image -->
+        <div class="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop"
+            class="w-full h-full object-cover"
+            alt="Container Ship"
+          />
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-slate-900/95 via-slate-900/80 to-slate-900/60"
+          ></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"
+          ></div>
+        </div>
+
+        <!-- Animated Grid Overlay -->
+        <div class="absolute inset-0 opacity-20">
+          <div
+            class="absolute inset-0"
+            style="background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 60px 60px;"
+          ></div>
+        </div>
+
+        <!-- Floating Elements -->
+        <div
+          class="absolute top-20 right-10 w-72 h-72 bg-red-500/20 rounded-full blur-3xl animate-pulse"
+        ></div>
+        <div
+          class="absolute bottom-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style="animation-delay: 1s;"
+        ></div>
+
+        <!-- Animated Lines -->
+        <svg
+          class="absolute inset-0 w-full h-full pointer-events-none opacity-30"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop
+                offset="0%"
+                style="stop-color:#dc2626;stop-opacity:0"
+              ></stop>
+              <stop
+                offset="50%"
+                style="stop-color:#dc2626;stop-opacity:1"
+              ></stop>
+              <stop
+                offset="100%"
+                style="stop-color:#dc2626;stop-opacity:0"
+              ></stop>
+            </linearGradient>
+          </defs>
+          <path
+            d="M 0 300 Q 400 200 800 350 T 1600 250"
+            fill="none"
+            stroke="url(#lineGradient)"
+            stroke-width="2"
+            stroke-dasharray="8 8"
+            class="animate-[dash_20s_linear_infinite]"
+          ></path>
+          <path
+            d="M 0 500 Q 300 400 600 500 T 1200 400 T 1800 500"
+            fill="none"
+            stroke="url(#lineGradient)"
+            stroke-width="1"
+            stroke-dasharray="4 4"
+            class="animate-[dash_15s_linear_infinite]"
+            style="animation-delay: 2s;"
+          ></path>
+        </svg>
+
+        <style>
+          @keyframes dash {
+              to { stroke-dashoffset: -100; }
+          }
+          @keyframes float {
+              0%, 100% { transform: translateY(0px) rotate(0deg); }
+              50% { transform: translateY(-20px) rotate(2deg); }
+          }
+          @keyframes slideIn {
+              from { opacity: 0; transform: translateX(-30px); }
+              to { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes fadeUp {
+              from { opacity: 0; transform: translateY(30px); }
+              to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-float { animation: float 6s ease-in-out infinite; }
+          .animate-slide-in { animation: slideIn 1s ease-out forwards; }
+          .animate-fade-up { animation: fadeUp 1s ease-out forwards; }
+        </style>
+
+        <div
+          class="max-w-[1400px] mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center relative z-10 w-full pt-12 lg:pt-0"
+        >
+          <!-- Left Content -->
+          <div class="lg:col-span-6 reveal-on-scroll">
+            <div
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[11px] font-medium text-white/90 mb-8 w-fit animate-slide-in"
+              style="animation-delay: 0.2s;"
+            >
+              <span
+                class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
+              ></span>
+              <span
+                class="bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent font-semibold"
+              >
+                NEW
+              </span>
+              AI-Powered Route Optimization v2.0
+            </div>
+
+            <h1
+              class="text-5xl sm:text-6xl lg:text-7xl font-medium tracking-tighter text-white leading-[0.95] mb-8 animate-fade-up"
+              style="animation-delay: 0.4s;"
+            >
+              Logistics without
+              <br />
+              <span
+                class="bg-gradient-to-r from-red-400 via-red-500 to-orange-400 bg-clip-text text-transparent"
+              >
+                boundaries.
+              </span>
+            </h1>
+
+            <p
+              class="text-slate-300 text-lg font-light leading-relaxed max-w-xl mb-10 animate-fade-up"
+              style="animation-delay: 0.6s;"
+            >
+              Orchestrate your entire supply chain from a single dashboard.
+              Real-time tracking, automated customs, and carbon-neutral shipping
+              options.
+            </p>
+
+            <div
+              class="flex flex-col sm:flex-row gap-4 items-start sm:items-center animate-fade-up"
+              style="animation-delay: 0.8s;"
+            >
+              <div class="relative w-full max-w-sm group">
+                <i
+                  data-lucide="search"
+                  class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-red-500 transition-colors"
+                ></i>
+                <input
+                  type="text"
+                  placeholder="Enter tracking number..."
+                  class="w-full pl-10 pr-4 py-3.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 focus:bg-white/20 transition-all"
+                />
+              </div>
+              <button
+                class="px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-500 text-white text-sm font-medium rounded-xl hover:from-red-500 hover:to-orange-500 hover:shadow-lg hover:shadow-red-500/30 transition-all duration-300 flex items-center gap-2"
+              >
+                Track Now
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Trust Indicators -->
+            <div
+              class="flex items-center gap-8 mt-12 pt-8 border-t border-white/10 animate-fade-up"
+              style="animation-delay: 1s;"
+            >
+              <div>
+                <span class="block text-2xl font-semibold text-white">50+</span>
+                <span class="text-xs text-slate-400">Countries</span>
+              </div>
+              <div class="w-px h-10 bg-white/20"></div>
+              <div>
+                <span class="block text-2xl font-semibold text-white">
+                  2.4M
+                </span>
+                <span class="text-xs text-slate-400">Shipments/Year</span>
+              </div>
+              <div class="w-px h-10 bg-white/20"></div>
+              <div>
+                <span class="block text-2xl font-semibold text-white">
+                  99.8%
+                </span>
+                <span class="text-xs text-slate-400">On-Time</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Visual: Floating Cards -->
+          <div
+            class="lg:col-span-6 relative h-[500px] lg:h-[650px] w-full flex items-center justify-center reveal-on-scroll delay-100 hidden lg:flex"
+          >
+            <!-- Main Floating Container PNG -->
+            <div
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] animate-float"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1493946740644-2d8a1f1a6aff?q=80&w=2090&auto=format&fit=crop"
+                class="w-full h-auto rounded-2xl shadow-2xl shadow-black/50 border border-white/10"
+                alt="Container"
+              />
+
+              <!-- Overlay Badge -->
+              <div
+                class="absolute -top-4 -right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-lg"
+              >
+                <span
+                  class="w-2 h-2 rounded-full bg-white animate-pulse"
+                ></span>
+                Live Tracking
+              </div>
+            </div>
+
+            <!-- Floating Status Card -->
+            <div
+              class="absolute bottom-16 -left-8 bg-white/95 backdrop-blur-xl p-5 rounded-2xl shadow-2xl border border-white/50 max-w-[240px] animate-float"
+              style="animation-delay: 1s;"
+            >
+              <div class="flex items-center gap-3 mb-3">
+                <div
+                  class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white"
+                >
+                  <i data-lucide="package" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-slate-900">
+                    #RS-849201
+                  </div>
+                  <div class="text-[10px] text-slate-500">
+                    Shanghai → Los Angeles
+                  </div>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <div class="flex justify-between text-[10px]">
+                  <span class="text-slate-500">Progress</span>
+                  <span class="text-slate-900 font-medium">68%</span>
+                </div>
+                <div
+                  class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"
+                >
+                  <div
+                    class="bg-gradient-to-r from-red-500 to-orange-500 h-full w-[68%] rounded-full"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Ship Icon -->
+            <div
+              class="absolute top-20 -right-4 bg-white/95 backdrop-blur-xl p-4 rounded-2xl shadow-2xl border border-white/50 animate-float"
+              style="animation-delay: 2s;"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600"
+                >
+                  <i data-lucide="ship" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-slate-900">142</div>
+                  <div class="text-[10px] text-slate-500">Active Ships</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating Globe Connection -->
+            <div
+              class="absolute top-8 left-12 bg-slate-900/90 backdrop-blur-xl p-4 rounded-xl shadow-2xl border border-white/10 animate-float"
+              style="animation-delay: 0.5s;"
+            >
+              <div class="flex items-center gap-2">
+                <i data-lucide="globe" class="w-5 h-5 text-red-500"></i>
+                <span class="text-xs text-white font-medium">
+                  120+ Countries
+                </span>
+              </div>
+            </div>
+
+            <!-- Animated Dots/Particles -->
+            <div
+              class="absolute top-1/4 right-1/4 w-2 h-2 rounded-full bg-red-500 animate-ping"
+            ></div>
+            <div
+              class="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"
+              style="animation-delay: 1s;"
+            ></div>
+            <div
+              class="absolute top-1/2 right-1/6 w-1 h-1 rounded-full bg-green-400 animate-ping"
+              style="animation-delay: 2s;"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Bottom Scroll Indicator -->
+        <div
+          class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce"
+        >
+          <span class="text-[10px] text-slate-400 uppercase tracking-widest">
+            Scroll
+          </span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+        </div>
+      </section>
+
+      <!-- Logo Ticker -->
+      <section class="border-b border-gray-100 bg-white py-10 overflow-hidden">
+        <div class="relative max-w-[1400px] mx-auto px-6">
+          <p
+            class="text-center text-xs font-medium text-slate-400 mb-8 tracking-widest uppercase"
+          >
+            Trusted by industry leaders
+          </p>
+          <div class="relative w-full overflow-hidden">
+            <div
+              class="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-white to-transparent z-10"
+            ></div>
+            <div
+              class="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-white to-transparent z-10"
+            ></div>
+
+            <div
+              class="flex gap-16 items-center whitespace-nowrap slider w-fit"
+            >
+              <!-- Logos (Text placeholders for style consistency without external SVG dependencies) -->
+              <span class="text-xl font-bold text-slate-300 font-serif">
+                ACME Corp
+              </span>
+              <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                Globex
+              </span>
+              <span class="text-xl font-bold text-slate-300 italic">
+                Soylent
+              </span>
+              <span class="text-xl font-bold text-slate-300 font-mono">
+                Umbrella
+              </span>
+              <span class="text-xl font-bold text-slate-300">Initech</span>
+              <span class="text-xl font-bold text-slate-300 font-serif">
+                Stark Ind
+              </span>
+              <span class="text-xl font-bold text-slate-300 tracking-widest">
+                MASSIVE
+              </span>
+              <span class="text-xl font-bold text-slate-300 font-serif">
+                Cyberdyne
+              </span>
+              <!-- Duplicate for loop -->
+              <span class="text-xl font-bold text-slate-300 font-serif">
+                ACME Corp
+              </span>
+              <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                Globex
+              </span>
+              <span class="text-xl font-bold text-slate-300 italic">
+                Soylent
+              </span>
+              <span class="text-xl font-bold text-slate-300 font-mono">
+                Umbrella
+              </span>
+              <span class="text-xl font-bold text-slate-300">Initech</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bento Grid Services -->
+      <section class="py-24 bg-slate-50">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="max-w-2xl mb-16 reveal-on-scroll">
+            <h2
+              class="text-4xl font-medium tracking-tighter text-slate-900 mb-4"
+            >
+              Infrastructure for
+              <br />
+              modern commerce.
+            </h2>
+            <p class="text-slate-500 font-light text-lg">
+              We provide the building blocks for global trade. Modular,
+              scalable, and reliable.
+            </p>
+          </div>
+
+          <div
+            class="grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-6 h-auto md:h-[800px]"
+          >
+            <!-- Large Card 1 -->
+            <div
+              class="md:col-span-2 row-span-1 md:row-span-2 bg-white rounded-2xl border border-gray-200 overflow-hidden group hover:shadow-xl hover:border-gray-300 transition-all duration-300 relative reveal-on-scroll"
+            >
+              <div class="absolute inset-0">
+                <img
+                  src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop"
+                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  alt="Container Ship"
+                />
+                <div
+                  class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+                ></div>
+              </div>
+              <div class="absolute bottom-0 left-0 p-8 w-full">
+                <div
+                  class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center mb-4 border border-white/30 text-white"
+                >
+                  <i data-lucide="ship" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-2xl font-medium text-white mb-2">
+                  Ocean Freight
+                </h3>
+                <p class="text-white/70 text-sm max-w-md">
+                  Premium container shipping with guaranteed capacity on major
+                  trade lanes. Access to over 500 ports worldwide.
+                </p>
+              </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div
+              class="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300 group reveal-on-scroll delay-100 flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-6 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors"
+                >
+                  <i data-lucide="plane" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-900 mb-2">
+                  Air Cargo
+                </h3>
+                <p class="text-slate-500 text-sm leading-relaxed">
+                  Time-critical solutions with next-flight-out options and
+                  chartered capacity.
+                </p>
+              </div>
+              <div
+                class="w-full bg-slate-100 h-32 rounded-lg mt-6 overflow-hidden relative"
+              >
+                <!-- Abstract graphic -->
+                <div class="absolute top-4 right-4 text-slate-300">
+                  <i data-lucide="cloud" class="w-12 h-12"></i>
+                </div>
+                <div class="absolute bottom-4 left-4 text-slate-300">
+                  <i data-lucide="arrow-up-right" class="w-8 h-8"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div
+              class="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300 group reveal-on-scroll delay-200 flex flex-col justify-between"
+            >
+              <div>
+                <div
+                  class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-6 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors"
+                >
+                  <i data-lucide="truck" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-900 mb-2">
+                  Overland
+                </h3>
+                <p class="text-slate-500 text-sm leading-relaxed">
+                  FTL &amp; LTL trucking across continents. Door-to-door
+                  delivery with live tracking.
+                </p>
+              </div>
+              <!-- Mini Graphic -->
+              <div class="mt-6 flex gap-2">
+                <div class="h-1 flex-1 bg-slate-100 rounded overflow-hidden">
+                  <div class="h-full bg-red-500 w-[70%]"></div>
+                </div>
+                <div class="h-1 flex-1 bg-slate-100 rounded"></div>
+                <div class="h-1 flex-1 bg-slate-100 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Global Network (Map) -->
+      <section class="py-24 bg-white overflow-hidden">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div
+            class="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8"
+          >
+            <div class="max-w-xl reveal-on-scroll">
+              <h2
+                class="text-4xl md:text-5xl font-medium tracking-tighter text-slate-900 mb-6"
+              >
+                Operating at
+                <br />
+                global scale.
+              </h2>
+              <p class="text-slate-500 font-light">
+                Our network spans 120 countries, connecting major economic hubs
+                with remote destinations through a unified logistics grid.
+              </p>
+            </div>
+
+            <div class="flex gap-12 reveal-on-scroll delay-100">
+              <div>
+                <span
+                  class="block text-3xl font-semibold text-slate-900 tracking-tight"
+                >
+                  50+
+                </span>
+                <span class="text-xs text-slate-500 uppercase tracking-wider">
+                  Countries
+                </span>
+              </div>
+              <div>
+                <span
+                  class="block text-3xl font-semibold text-slate-900 tracking-tight"
+                >
+                  2.4M
+                </span>
+                <span class="text-xs text-slate-500 uppercase tracking-wider">
+                  Tons / Year
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Map Container -->
+          <div
+            class="relative w-full aspect-[16/8] bg-slate-50 rounded-2xl border border-gray-100 overflow-hidden reveal-on-scroll delay-200 group"
+          >
+            <!-- SVG Map -->
+            <div
+              class="absolute inset-0 p-8 flex items-center justify-center opacity-40 grayscale group-hover:grayscale-0 transition-all duration-700"
+            >
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg"
+                class="w-full h-full object-contain opacity-20"
+                alt="World Map"
+              />
+            </div>
+
+            <!-- Overlay Grid -->
+            <div class="absolute inset-0 bg-grid-slate opacity-30"></div>
+
+            <!-- Dynamic Dots -->
+            <div class="absolute inset-0">
+              <!-- North America -->
+              <div class="map-marker top-[35%] left-[22%] group/marker">
+                <div
+                  class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap z-20"
+                >
+                  New York Hub
+                </div>
+              </div>
+              <div class="map-marker top-[38%] left-[15%]"></div>
+              <!-- LA -->
+
+              <!-- Europe -->
+              <div class="map-marker top-[32%] left-[48%] group/marker">
+                <div
+                  class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap z-20"
+                >
+                  Rotterdam HQ
+                </div>
+              </div>
+              <div class="map-marker top-[35%] left-[51%]"></div>
+
+              <!-- Asia -->
+              <div class="map-marker top-[40%] left-[75%]"></div>
+              <div class="map-marker top-[45%] left-[82%] group/marker">
+                <div
+                  class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/marker:opacity-100 transition-opacity whitespace-nowrap z-20"
+                >
+                  Singapore Hub
+                </div>
+              </div>
+              <div class="map-marker top-[38%] left-[85%]"></div>
+              <!-- Tokyo -->
+            </div>
+
+            <!-- Radar Scan Effect -->
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-red-500/5 to-transparent h-[20%] w-full animate-[scan_4s_linear_infinite] pointer-events-none border-b border-red-500/10"
+            ></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA Section -->
+      <section class="py-32 relative overflow-hidden bg-slate-900">
+        <!-- Background Image -->
+        <div class="absolute inset-0 opacity-30">
+          <img
+            src="https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/917d6f93-fb36-439a-8c48-884b67b35381_1600w.jpg"
+            class="w-full h-full object-cover grayscale"
+            alt="Port"
+          />
+        </div>
+
+        <div
+          class="relative z-10 max-w-4xl mx-auto px-6 text-center reveal-on-scroll"
+        >
+          <h2
+            class="text-5xl md:text-7xl font-medium text-white tracking-tighter mb-8"
+          >
+            Ready to ship?
+          </h2>
+          <p class="text-slate-400 text-lg mb-10 max-w-2xl mx-auto font-light">
+            Join 450+ companies streamlining their logistics with RouteSphere.
+            Get a quote in minutes.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              class="bg-white text-slate-900 px-8 py-4 rounded-full text-sm font-semibold hover:bg-red-500 hover:text-white transition-all duration-300"
+            >
+              Start Shipping
+            </button>
+            <button
+              class="bg-transparent border border-white/20 text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-white/10 transition-all"
+            >
+              Contact Sales
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- PAGE 2: SOLUTIONS / SERVICES -->
+    <main id="solutions" class="page-section pt-16">
+      <!-- Hero -->
+      <section
+        class="relative py-24 bg-white border-b border-gray-100 overflow-hidden"
+      >
+        <div class="absolute inset-0 bg-grid-slate pointer-events-none"></div>
+        <div class="max-w-[1400px] mx-auto px-6 relative z-10">
+          <div class="max-w-3xl reveal-on-scroll">
+            <div
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-100 text-[10px] font-medium text-red-600 mb-6"
+            >
+              <i data-lucide="layers" class="w-3 h-3"></i>
+              Our Services
+            </div>
+            <h1
+              class="text-5xl md:text-7xl font-medium tracking-tighter text-slate-900 mb-6"
+            >
+              End-to-end logistics
+              <span class="text-slate-400">solutions.</span>
+            </h1>
+            <p class="text-xl text-slate-500 font-light leading-relaxed">
+              From freight forwarding to customs clearance, we handle every step
+              of your supply chain with precision and care.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Core Services Grid -->
+      <section class="py-24 bg-slate-50">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Service Card 1 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-6 text-blue-600"
+              >
+                <i data-lucide="ship" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Ocean Freight
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                Full container load (FCL) and less than container load (LCL)
+                shipping with real-time visibility across all major trade lanes.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  500+ port coverage
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Guaranteed capacity
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Carbon offset options
+                </li>
+              </ul>
+            </div>
+
+            <!-- Service Card 2 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll delay-100"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center mb-6 text-purple-600"
+              >
+                <i data-lucide="plane" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Air Cargo
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                Express and standard air freight options with direct routes to
+                180+ destinations. Charter services available.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Next-flight-out available
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Temperature controlled
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Dangerous goods certified
+                </li>
+              </ul>
+            </div>
+
+            <!-- Service Card 3 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll delay-200"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center mb-6 text-orange-600"
+              >
+                <i data-lucide="truck" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Road Freight
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                FTL and LTL trucking solutions across Europe, Asia, and North
+                America with GPS tracking on every shipment.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Cross-border expertise
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Express delivery
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Last-mile solutions
+                </li>
+              </ul>
+            </div>
+
+            <!-- Service Card 4 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-6 text-green-600"
+              >
+                <i data-lucide="train-front" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Rail Freight
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                Cost-effective rail solutions connecting Asia and Europe via the
+                Trans-Siberian and China-Europe routes.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  40% faster than ocean
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Lower carbon footprint
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Intermodal connections
+                </li>
+              </ul>
+            </div>
+
+            <!-- Service Card 5 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll delay-100"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-6 text-red-600"
+              >
+                <i data-lucide="warehouse" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Warehousing
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                Strategic warehouse locations worldwide with inventory
+                management, pick-and-pack, and fulfillment services.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Real-time inventory
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  E-commerce integration
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Bonded facilities
+                </li>
+              </ul>
+            </div>
+
+            <!-- Service Card 6 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 p-8 card-hover reveal-on-scroll delay-200"
+            >
+              <div
+                class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-6 text-slate-600"
+              >
+                <i data-lucide="file-text" class="w-6 h-6"></i>
+              </div>
+              <h3
+                class="text-xl font-medium text-slate-900 mb-3 tracking-tight"
+              >
+                Customs Brokerage
+              </h3>
+              <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                Licensed customs brokers in every major market. Automated
+                documentation and compliance management.
+              </p>
+              <ul class="space-y-3">
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  120+ country coverage
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  HS code optimization
+                </li>
+                <li class="flex items-center gap-3 text-sm text-slate-600">
+                  <i
+                    data-lucide="check-circle"
+                    class="w-4 h-4 text-green-500"
+                  ></i>
+                  Trade agreements
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Technology Platform -->
+      <section class="py-24 bg-white">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="grid lg:grid-cols-2 gap-16 items-center">
+            <div class="reveal-on-scroll">
+              <span
+                class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-4 block"
+              >
+                Technology
+              </span>
+              <h2
+                class="text-4xl font-medium tracking-tighter text-slate-900 mb-6"
+              >
+                One platform to manage everything.
+              </h2>
+              <p class="text-slate-500 font-light text-lg mb-8">
+                Our proprietary platform gives you complete visibility and
+                control over your supply chain—from booking to delivery.
+              </p>
+
+              <div class="space-y-6">
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="map-pin" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      Real-Time Tracking
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      GPS and IoT-enabled visibility for every shipment, every
+                      mile.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"
+                  >
+                    <i
+                      data-lucide="sparkles"
+                      class="w-5 h-5 text-slate-600"
+                    ></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      AI-Powered Optimization
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Machine learning algorithms that predict delays and
+                      optimize routes.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="plug" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      API Integrations
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Connect your ERP, WMS, and e-commerce platforms
+                      seamlessly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Platform Preview -->
+            <div class="relative reveal-on-scroll delay-100">
+              <div
+                class="absolute -inset-4 bg-gradient-to-r from-red-500/10 to-purple-500/10 rounded-3xl blur-2xl"
+              ></div>
+              <div class="relative bg-slate-900 rounded-2xl p-2 shadow-2xl">
+                <div
+                  class="flex items-center gap-2 px-4 py-3 border-b border-slate-800"
+                >
+                  <div class="flex gap-1.5">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                  </div>
+                  <span class="text-[10px] text-slate-500 ml-4">
+                    app.routesphere.com
+                  </span>
+                </div>
+                <div class="p-6 space-y-4">
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm text-white font-medium">
+                      Active Shipments
+                    </span>
+                    <span class="text-2xl font-semibold text-white">247</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-slate-800 rounded-lg p-3">
+                      <span class="text-[10px] text-slate-400 block mb-1">
+                        Ocean
+                      </span>
+                      <span class="text-sm text-white font-medium">142</span>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-3">
+                      <span class="text-[10px] text-slate-400 block mb-1">
+                        Air
+                      </span>
+                      <span class="text-sm text-white font-medium">68</span>
+                    </div>
+                    <div class="bg-slate-800 rounded-lg p-3">
+                      <span class="text-[10px] text-slate-400 block mb-1">
+                        Road
+                      </span>
+                      <span class="text-sm text-white font-medium">37</span>
+                    </div>
+                  </div>
+                  <div
+                    class="h-32 bg-slate-800 rounded-lg flex items-end p-4 gap-2"
+                  >
+                    <div class="flex-1 bg-red-500/50 rounded h-[40%]"></div>
+                    <div class="flex-1 bg-red-500/50 rounded h-[60%]"></div>
+                    <div class="flex-1 bg-red-500/50 rounded h-[45%]"></div>
+                    <div class="flex-1 bg-red-500/50 rounded h-[80%]"></div>
+                    <div class="flex-1 bg-red-500 rounded h-[90%]"></div>
+                    <div class="flex-1 bg-red-500/50 rounded h-[70%]"></div>
+                    <div class="flex-1 bg-red-500/50 rounded h-[55%]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="py-24 bg-slate-50 border-t border-gray-100">
+        <div class="max-w-3xl mx-auto px-6 text-center reveal-on-scroll">
+          <h2 class="text-4xl font-medium tracking-tighter text-slate-900 mb-6">
+            Ready to optimize your supply chain?
+          </h2>
+          <p class="text-slate-500 mb-8">
+            Get a custom quote for your shipping needs in under 5 minutes.
+          </p>
+          <button
+            class="bg-slate-900 text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-red-600 transition-all duration-300"
+          >
+            Get Started
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- PAGE 3: NETWORK -->
+    <main id="network" class="page-section pt-16">
+      <!-- Hero -->
+      <section class="relative py-24 bg-slate-900 overflow-hidden">
+        <div class="absolute inset-0 opacity-20">
+          <img
+            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop"
+            class="w-full h-full object-cover"
+            alt="Globe"
+          />
+        </div>
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-slate-900/50 to-slate-900"
+        ></div>
+
+        <div class="max-w-[1400px] mx-auto px-6 relative z-10">
+          <div class="max-w-3xl reveal-on-scroll">
+            <div
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-medium text-white/80 mb-6"
+            >
+              <i data-lucide="globe" class="w-3 h-3"></i>
+              Global Network
+            </div>
+            <h1
+              class="text-5xl md:text-7xl font-medium tracking-tighter text-white mb-6"
+            >
+              Worldwide
+              <span class="text-slate-400">reach.</span>
+            </h1>
+            <p class="text-xl text-slate-400 font-light leading-relaxed">
+              Our strategically located offices and partner network ensure your
+              cargo reaches any destination efficiently.
+            </p>
+          </div>
+
+          <!-- Stats Row -->
+          <div
+            class="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 reveal-on-scroll delay-100"
+          >
+            <div class="text-center md:text-left">
+              <span
+                class="block text-4xl font-semibold text-white tracking-tight"
+              >
+                120+
+              </span>
+              <span class="text-sm text-slate-500">Countries</span>
+            </div>
+            <div class="text-center md:text-left">
+              <span
+                class="block text-4xl font-semibold text-white tracking-tight"
+              >
+                45
+              </span>
+              <span class="text-sm text-slate-500">Offices</span>
+            </div>
+            <div class="text-center md:text-left">
+              <span
+                class="block text-4xl font-semibold text-white tracking-tight"
+              >
+                2,400+
+              </span>
+              <span class="text-sm text-slate-500">Employees</span>
+            </div>
+            <div class="text-center md:text-left">
+              <span
+                class="block text-4xl font-semibold text-white tracking-tight"
+              >
+                500+
+              </span>
+              <span class="text-sm text-slate-500">Ports Served</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Regional Hubs -->
+      <section class="py-24 bg-white">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="text-center mb-16 reveal-on-scroll">
+            <h2
+              class="text-4xl font-medium tracking-tighter text-slate-900 mb-4"
+            >
+              Regional Hubs
+            </h2>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+              Strategic locations that serve as the backbone of our global
+              operations.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Hub 1: Europe -->
+            <div
+              class="group relative rounded-2xl overflow-hidden aspect-[4/3] reveal-on-scroll"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=2070&auto=format&fit=crop"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                alt="Rotterdam"
+              />
+              <div
+                class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+              ></div>
+              <div class="absolute bottom-0 left-0 p-6">
+                <span
+                  class="text-[10px] uppercase tracking-widest text-red-400 font-semibold mb-2 block"
+                >
+                  Headquarters
+                </span>
+                <h3 class="text-2xl font-medium text-white mb-1">Rotterdam</h3>
+                <p class="text-white/60 text-sm">
+                  Europe, Middle East &amp; Africa
+                </p>
+              </div>
+              <div class="absolute top-4 right-4">
+                <div
+                  class="w-3 h-3 rounded-full bg-green-500 animate-pulse"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Hub 2: Asia -->
+            <div
+              class="group relative rounded-2xl overflow-hidden aspect-[4/3] reveal-on-scroll delay-100"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1525625293386-3f8f99389edd?q=80&w=2052&auto=format&fit=crop"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                alt="Singapore"
+              />
+              <div
+                class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+              ></div>
+              <div class="absolute bottom-0 left-0 p-6">
+                <span
+                  class="text-[10px] uppercase tracking-widest text-blue-400 font-semibold mb-2 block"
+                >
+                  Regional Hub
+                </span>
+                <h3 class="text-2xl font-medium text-white mb-1">Singapore</h3>
+                <p class="text-white/60 text-sm">Asia Pacific</p>
+              </div>
+              <div class="absolute top-4 right-4">
+                <div
+                  class="w-3 h-3 rounded-full bg-green-500 animate-pulse"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Hub 3: Americas -->
+            <div
+              class="group relative rounded-2xl overflow-hidden aspect-[4/3] reveal-on-scroll delay-200"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1534430480872-3498386e7856?q=80&w=2070&auto=format&fit=crop"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                alt="New York"
+              />
+              <div
+                class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
+              ></div>
+              <div class="absolute bottom-0 left-0 p-6">
+                <span
+                  class="text-[10px] uppercase tracking-widest text-purple-400 font-semibold mb-2 block"
+                >
+                  Regional Hub
+                </span>
+                <h3 class="text-2xl font-medium text-white mb-1">New York</h3>
+                <p class="text-white/60 text-sm">Americas</p>
+              </div>
+              <div class="absolute top-4 right-4">
+                <div
+                  class="w-3 h-3 rounded-full bg-green-500 animate-pulse"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Office Locations List -->
+      <section class="py-24 bg-slate-50">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <h2
+            class="text-3xl font-medium tracking-tighter text-slate-900 mb-12 reveal-on-scroll"
+          >
+            All Locations
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Region: Europe -->
+            <div class="reveal-on-scroll">
+              <h3
+                class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6"
+              >
+                Europe
+              </h3>
+              <ul class="space-y-4">
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Rotterdam (HQ)
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  London
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Hamburg
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Paris
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Milan
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Barcelona
+                </li>
+              </ul>
+            </div>
+
+            <!-- Region: Asia Pacific -->
+            <div class="reveal-on-scroll delay-100">
+              <h3
+                class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6"
+              >
+                Asia Pacific
+              </h3>
+              <ul class="space-y-4">
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Singapore
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Shanghai
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Hong Kong
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Tokyo
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Sydney
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Mumbai
+                </li>
+              </ul>
+            </div>
+
+            <!-- Region: Americas -->
+            <div class="reveal-on-scroll delay-200">
+              <h3
+                class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6"
+              >
+                Americas
+              </h3>
+              <ul class="space-y-4">
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  New York
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Los Angeles
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Chicago
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Miami
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  São Paulo
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Mexico City
+                </li>
+              </ul>
+            </div>
+
+            <!-- Region: Middle East & Africa -->
+            <div class="reveal-on-scroll delay-300">
+              <h3
+                class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6"
+              >
+                Middle East &amp; Africa
+              </h3>
+              <ul class="space-y-4">
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Dubai
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Johannesburg
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Cairo
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Lagos
+                </li>
+                <li
+                  class="flex items-center gap-3 text-sm text-slate-700 hover:text-red-600 cursor-pointer transition-colors"
+                >
+                  <div class="w-2 h-2 rounded-full bg-slate-300"></div>
+                  Tel Aviv
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Partner Network -->
+      <section class="py-24 bg-white border-t border-gray-100">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="grid lg:grid-cols-2 gap-16 items-center">
+            <div class="reveal-on-scroll">
+              <span
+                class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-4 block"
+              >
+                Partner Network
+              </span>
+              <h2
+                class="text-4xl font-medium tracking-tighter text-slate-900 mb-6"
+              >
+                Extended through trusted partners.
+              </h2>
+              <p class="text-slate-500 font-light text-lg mb-8">
+                Beyond our own operations, we work with a vetted network of
+                carriers and agents to ensure coverage in even the most remote
+                locations.
+              </p>
+
+              <div class="grid grid-cols-2 gap-6">
+                <div class="bg-slate-50 rounded-xl p-6">
+                  <span class="text-3xl font-semibold text-slate-900">
+                    850+
+                  </span>
+                  <p class="text-sm text-slate-500 mt-1">Carrier Partners</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-6">
+                  <span class="text-3xl font-semibold text-slate-900">
+                    200+
+                  </span>
+                  <p class="text-sm text-slate-500 mt-1">Exclusive Agents</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 reveal-on-scroll delay-100">
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  Maersk
+                </span>
+              </div>
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  MSC
+                </span>
+              </div>
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  CMA
+                </span>
+              </div>
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  Hapag
+                </span>
+              </div>
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  ONE
+                </span>
+              </div>
+              <div
+                class="bg-slate-50 rounded-xl p-6 flex items-center justify-center aspect-square"
+              >
+                <span class="text-xl font-bold text-slate-300 tracking-tighter">
+                  Evergreen
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- PAGE 4: COMPANY -->
+    <main id="company" class="page-section pt-16">
+      <!-- Hero -->
+      <section
+        class="relative py-24 bg-white border-b border-gray-100 overflow-hidden"
+      >
+        <div class="absolute inset-0 bg-grid-slate pointer-events-none"></div>
+        <div class="max-w-[1400px] mx-auto px-6 relative z-10">
+          <div class="max-w-3xl reveal-on-scroll">
+            <div
+              class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-medium text-slate-600 mb-6"
+            >
+              <i data-lucide="building-2" class="w-3 h-3"></i>
+              About Us
+            </div>
+            <h1
+              class="text-5xl md:text-7xl font-medium tracking-tighter text-slate-900 mb-6"
+            >
+              Moving the world
+              <span class="text-slate-400">forward.</span>
+            </h1>
+            <p class="text-xl text-slate-500 font-light leading-relaxed">
+              Founded in 2018, RouteSphere set out to transform global logistics
+              with technology, transparency, and a relentless focus on customer
+              experience.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mission & Values -->
+      <section class="py-24 bg-slate-50">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="grid lg:grid-cols-2 gap-16">
+            <!-- Mission -->
+            <div class="reveal-on-scroll">
+              <span
+                class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-4 block"
+              >
+                Our Mission
+              </span>
+              <h2
+                class="text-3xl font-medium tracking-tighter text-slate-900 mb-6"
+              >
+                To make global trade accessible, efficient, and sustainable for
+                every business.
+              </h2>
+              <p class="text-slate-500 font-light leading-relaxed">
+                We believe that the complexity of international logistics
+                shouldn't be a barrier to growth. By combining cutting-edge
+                technology with deep industry expertise, we're democratizing
+                access to world-class supply chain solutions.
+              </p>
+            </div>
+
+            <!-- Values -->
+            <div class="reveal-on-scroll delay-100">
+              <span
+                class="text-xs font-semibold text-red-600 uppercase tracking-widest mb-4 block"
+              >
+                Our Values
+              </span>
+              <div class="space-y-6">
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="eye" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      Transparency
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Real-time visibility and honest communication at every
+                      step.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="zap" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      Innovation
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Constantly pushing boundaries with technology and process.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="leaf" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      Sustainability
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Committed to reducing the environmental impact of global
+                      trade.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex gap-4">
+                  <div
+                    class="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0"
+                  >
+                    <i data-lucide="users" class="w-5 h-5 text-slate-600"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-semibold text-slate-900 mb-1">
+                      Partnership
+                    </h4>
+                    <p class="text-sm text-slate-500">
+                      Building long-term relationships based on trust and mutual
+                      success.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Timeline -->
+      <section class="py-24 bg-white">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="text-center mb-16 reveal-on-scroll">
+            <h2
+              class="text-4xl font-medium tracking-tighter text-slate-900 mb-4"
+            >
+              Our Journey
+            </h2>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+              From startup to global logistics platform in just a few years.
+            </p>
+          </div>
+
+          <div class="relative">
+            <!-- Timeline Line -->
+            <div
+              class="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gray-200 -translate-x-1/2"
+            ></div>
+
+            <div class="space-y-12 md:space-y-0">
+              <!-- 2018 -->
+              <div
+                class="relative md:grid md:grid-cols-2 md:gap-8 reveal-on-scroll"
+              >
+                <div class="md:text-right md:pr-12">
+                  <span
+                    class="text-xs font-semibold text-red-600 uppercase tracking-widest"
+                  >
+                    2018
+                  </span>
+                  <h3 class="text-xl font-medium text-slate-900 mt-2 mb-2">
+                    Founded in Rotterdam
+                  </h3>
+                  <p class="text-slate-500 text-sm">
+                    Started with a team of 5 and a vision to digitize freight
+                    forwarding.
+                  </p>
+                </div>
+                <div class="hidden md:block"></div>
+                <div
+                  class="hidden md:flex absolute left-1/2 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-red-600 border-4 border-white shadow"
+                ></div>
+              </div>
+
+              <!-- 2019 -->
+              <div
+                class="relative md:grid md:grid-cols-2 md:gap-8 md:pt-16 reveal-on-scroll delay-100"
+              >
+                <div class="hidden md:block"></div>
+                <div class="md:pl-12">
+                  <span
+                    class="text-xs font-semibold text-red-600 uppercase tracking-widest"
+                  >
+                    2019
+                  </span>
+                  <h3 class="text-xl font-medium text-slate-900 mt-2 mb-2">
+                    Series A Funding
+                  </h3>
+                  <p class="text-slate-500 text-sm">
+                    Raised $12M to expand our technology platform and open Asian
+                    offices.
+                  </p>
+                </div>
+                <div
+                  class="hidden md:flex absolute left-1/2 top-16 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-300 border-4 border-white shadow"
+                ></div>
+              </div>
+
+              <!-- 2020 -->
+              <div
+                class="relative md:grid md:grid-cols-2 md:gap-8 md:pt-16 reveal-on-scroll delay-200"
+              >
+                <div class="md:text-right md:pr-12">
+                  <span
+                    class="text-xs font-semibold text-red-600 uppercase tracking-widest"
+                  >
+                    2020
+                  </span>
+                  <h3 class="text-xl font-medium text-slate-900 mt-2 mb-2">
+                    Pandemic Resilience
+                  </h3>
+                  <p class="text-slate-500 text-sm">
+                    Helped 200+ companies navigate supply chain disruptions
+                    during COVID-19.
+                  </p>
+                </div>
+                <div class="hidden md:block"></div>
+                <div
+                  class="hidden md:flex absolute left-1/2 top-16 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-300 border-4 border-white shadow"
+                ></div>
+              </div>
+
+              <!-- 2022 -->
+              <div
+                class="relative md:grid md:grid-cols-2 md:gap-8 md:pt-16 reveal-on-scroll delay-300"
+              >
+                <div class="hidden md:block"></div>
+                <div class="md:pl-12">
+                  <span
+                    class="text-xs font-semibold text-red-600 uppercase tracking-widest"
+                  >
+                    2022
+                  </span>
+                  <h3 class="text-xl font-medium text-slate-900 mt-2 mb-2">
+                    Series B &amp; Americas Expansion
+                  </h3>
+                  <p class="text-slate-500 text-sm">
+                    $45M funding round. Opened New York hub and acquired 3
+                    regional players.
+                  </p>
+                </div>
+                <div
+                  class="hidden md:flex absolute left-1/2 top-16 -translate-x-1/2 w-4 h-4 rounded-full bg-slate-300 border-4 border-white shadow"
+                ></div>
+              </div>
+
+              <!-- 2024 -->
+              <div
+                class="relative md:grid md:grid-cols-2 md:gap-8 md:pt-16 reveal-on-scroll delay-400"
+              >
+                <div class="md:text-right md:pr-12">
+                  <span
+                    class="text-xs font-semibold text-red-600 uppercase tracking-widest"
+                  >
+                    2024
+                  </span>
+                  <h3 class="text-xl font-medium text-slate-900 mt-2 mb-2">
+                    AI Platform Launch
+                  </h3>
+                  <p class="text-slate-500 text-sm">
+                    Introduced AI-powered route optimization, reducing transit
+                    times by 18%.
+                  </p>
+                </div>
+                <div class="hidden md:block"></div>
+                <div
+                  class="hidden md:flex absolute left-1/2 top-16 -translate-x-1/2 w-4 h-4 rounded-full bg-red-600 border-4 border-white shadow"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leadership Team -->
+      <section class="py-24 bg-slate-50">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="text-center mb-16 reveal-on-scroll">
+            <h2
+              class="text-4xl font-medium tracking-tighter text-slate-900 mb-4"
+            >
+              Leadership Team
+            </h2>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+              Experienced operators and innovators driving our mission forward.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Team Member 1 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 overflow-hidden card-hover reveal-on-scroll"
+            >
+              <div class="aspect-square bg-slate-100 relative overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop"
+                  class="w-full h-full object-cover"
+                  alt="CEO"
+                />
+              </div>
+              <div class="p-6">
+                <h4 class="text-base font-semibold text-slate-900">
+                  Erik van der Berg
+                </h4>
+                <p class="text-sm text-slate-500 mb-4">CEO &amp; Co-Founder</p>
+                <div class="flex gap-3">
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="linkedin" class="w-4 h-4"></i>
+                  </a>
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="twitter" class="w-4 h-4"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Member 2 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 overflow-hidden card-hover reveal-on-scroll delay-100"
+            >
+              <div class="aspect-square bg-slate-100 relative overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop"
+                  class="w-full h-full object-cover"
+                  alt="COO"
+                />
+              </div>
+              <div class="p-6">
+                <h4 class="text-base font-semibold text-slate-900">
+                  Sarah Chen
+                </h4>
+                <p class="text-sm text-slate-500 mb-4">COO</p>
+                <div class="flex gap-3">
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="linkedin" class="w-4 h-4"></i>
+                  </a>
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="twitter" class="w-4 h-4"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Member 3 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 overflow-hidden card-hover reveal-on-scroll delay-200"
+            >
+              <div class="aspect-square bg-slate-100 relative overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1974&auto=format&fit=crop"
+                  class="w-full h-full object-cover"
+                  alt="CTO"
+                />
+              </div>
+              <div class="p-6">
+                <h4 class="text-base font-semibold text-slate-900">
+                  Marcus Johnson
+                </h4>
+                <p class="text-sm text-slate-500 mb-4">CTO</p>
+                <div class="flex gap-3">
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="linkedin" class="w-4 h-4"></i>
+                  </a>
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Team Member 4 -->
+            <div
+              class="bg-white rounded-2xl border border-gray-200 overflow-hidden card-hover reveal-on-scroll delay-300"
+            >
+              <div class="aspect-square bg-slate-100 relative overflow-hidden">
+                <img
+                  src="https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1961&auto=format&fit=crop"
+                  class="w-full h-full object-cover"
+                  alt="CFO"
+                />
+              </div>
+              <div class="p-6">
+                <h4 class="text-base font-semibold text-slate-900">
+                  Anna Müller
+                </h4>
+                <p class="text-sm text-slate-500 mb-4">CFO</p>
+                <div class="flex gap-3">
+                  <a href="#" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="linkedin" class="w-4 h-4"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Careers CTA -->
+      <section class="py-24 bg-slate-900">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="reveal-on-scroll">
+              <span
+                class="text-xs font-semibold text-red-400 uppercase tracking-widest mb-4 block"
+              >
+                Careers
+              </span>
+              <h2 class="text-4xl font-medium tracking-tighter text-white mb-6">
+                Join the team shaping global trade.
+              </h2>
+              <p class="text-slate-400 font-light text-lg mb-8">
+                We're always looking for talented individuals who share our
+                passion for innovation and logistics excellence.
+              </p>
+              <button
+                class="bg-white text-slate-900 px-6 py-3 rounded-full text-sm font-semibold hover:bg-red-500 hover:text-white transition-all duration-300"
+              >
+                View Open Positions
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 reveal-on-scroll delay-100">
+              <div class="bg-slate-800 rounded-xl p-6">
+                <span class="text-3xl font-semibold text-white">24</span>
+                <p class="text-sm text-slate-400 mt-1">Open Roles</p>
+              </div>
+              <div class="bg-slate-800 rounded-xl p-6">
+                <span class="text-3xl font-semibold text-white">15</span>
+                <p class="text-sm text-slate-400 mt-1">Countries Hiring</p>
+              </div>
+              <div class="bg-slate-800 rounded-xl p-6">
+                <span class="text-3xl font-semibold text-white">4.8</span>
+                <p class="text-sm text-slate-400 mt-1">Glassdoor Rating</p>
+              </div>
+              <div class="bg-slate-800 rounded-xl p-6">
+                <span class="text-3xl font-semibold text-white">92%</span>
+                <p class="text-sm text-slate-400 mt-1">Employee Satisfaction</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Press & News -->
+      <section class="py-24 bg-white">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <div
+            class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6 reveal-on-scroll"
+          >
+            <div>
+              <h2
+                class="text-3xl font-medium tracking-tighter text-slate-900 mb-2"
+              >
+                Latest News
+              </h2>
+              <p class="text-slate-500">
+                Updates from RouteSphere and the industry.
+              </p>
+            </div>
+            <a
+              href="#"
+              class="text-sm font-medium text-red-600 hover:text-red-700 flex items-center gap-1"
+            >
+              View all news
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- News 1 -->
+            <article class="group reveal-on-scroll">
+              <div
+                class="aspect-video rounded-xl overflow-hidden mb-4 bg-slate-100"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2070&auto=format&fit=crop"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  alt="News"
+                />
+              </div>
+              <span class="text-xs text-slate-400">October 15, 2024</span>
+              <h3
+                class="text-lg font-medium text-slate-900 mt-2 mb-2 group-hover:text-red-600 transition-colors"
+              >
+                RouteSphere Announces AI-Powered Route Optimization 2.0
+              </h3>
+              <p class="text-sm text-slate-500">
+                New machine learning models reduce average transit times by 18%
+                while cutting carbon emissions.
+              </p>
+            </article>
+
+            <!-- News 2 -->
+            <article class="group reveal-on-scroll delay-100">
+              <div
+                class="aspect-video rounded-xl overflow-hidden mb-4 bg-slate-100"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=2069&auto=format&fit=crop"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  alt="News"
+                />
+              </div>
+              <span class="text-xs text-slate-400">September 28, 2024</span>
+              <h3
+                class="text-lg font-medium text-slate-900 mt-2 mb-2 group-hover:text-red-600 transition-colors"
+              >
+                Partnership with Maersk Expands Ocean Capacity
+              </h3>
+              <p class="text-sm text-slate-500">
+                Strategic alliance guarantees container capacity on Asia-Europe
+                trade lanes through 2026.
+              </p>
+            </article>
+
+            <!-- News 3 -->
+            <article class="group reveal-on-scroll delay-200">
+              <div
+                class="aspect-video rounded-xl overflow-hidden mb-4 bg-slate-100"
+              >
+                <img
+                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  alt="News"
+                />
+              </div>
+              <span class="text-xs text-slate-400">September 10, 2024</span>
+              <h3
+                class="text-lg font-medium text-slate-900 mt-2 mb-2 group-hover:text-red-600 transition-colors"
+              >
+                New Singapore Hub Triples APAC Capacity
+              </h3>
+              <p class="text-sm text-slate-500">
+                50,000 sqm facility opens to support growing demand in Southeast
+                Asian markets.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer - Modern Dramatic Design -->
+    <footer class="bg-slate-950 text-white overflow-hidden">
+      <!-- Hero Image Section -->
+      <div class="relative w-full h-[50vh] md:h-[60vh] overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1605745341112-85968b19335b?q=80&w=2071&auto=format&fit=crop"
+          class="w-full h-full object-cover"
+          alt="Container Ship at Sea"
+        />
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950"></div>
+        
+        <!-- Geometric Overlay Grid -->
+        <div class="absolute inset-0 grid grid-cols-4 md:grid-cols-6">
+          <div class="border-r border-white/5"></div>
+          <div class="border-r border-white/5"></div>
+          <div class="border-r border-white/5 hidden md:block"></div>
+          <div class="border-r border-white/5 hidden md:block"></div>
+          <div class="border-r border-white/5"></div>
+          <div></div>
+        </div>
+      </div>
+
+      <!-- Contact Info Section -->
+      <div class="relative">
+        <div class="max-w-[1400px] mx-auto px-6">
+          <!-- Main Contact Row -->
+          <div class="grid grid-cols-1 md:grid-cols-2 border-b border-slate-800">
+            <!-- Left: Address -->
+            <div class="py-12 md:py-16 md:pr-12 md:border-r border-slate-800">
+              <p class="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">Headquarters</p>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                1250 HARBOR BOULEVARD<br />
+                ROTTERDAM, 3011 AA, NETHERLANDS
+              </p>
+            </div>
+            
+            <!-- Right: Phone & Email -->
+            <div class="py-12 md:py-16 md:pl-12 flex flex-col justify-center relative">
+              <div class="space-y-4">
+                <a href="tel:+31104567890" class="block text-2xl md:text-3xl font-light text-white hover:text-red-500 transition-colors tracking-tight">
+                  +31 10 456 7890
+                </a>
+                <a href="mailto:contact@routesphere.com" class="block text-2xl md:text-3xl font-light text-white hover:text-red-500 transition-colors tracking-tight">
+                  contact@routesphere.com
+                </a>
+              </div>
+              
+              <!-- Back to Top Button -->
+              <button 
+                onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+                class="absolute right-0 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-slate-700 flex items-center justify-center hover:bg-white hover:text-slate-900 hover:border-white transition-all duration-300 group"
+              >
+                <i data-lucide="arrow-up" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Navigation Links Row -->
+          <div class="py-12 grid grid-cols-2 md:grid-cols-4 gap-8 border-b border-slate-800">
+            <div>
+              <h5 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-6">Platform</h5>
+              <ul class="space-y-4 text-sm text-slate-400">
+                <li><a href="#" class="hover:text-white transition-colors">Ocean Freight</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Air Cargo</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Road Freight</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Tracking</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-6">Solutions</h5>
+              <ul class="space-y-4 text-sm text-slate-400">
+                <li><a href="#" class="hover:text-white transition-colors">E-Commerce</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Enterprise</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Customs</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">API</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-6">Company</h5>
+              <ul class="space-y-4 text-sm text-slate-400">
+                <li><a href="#" class="hover:text-white transition-colors">About</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Press</a></li>
+                <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-6">Connect</h5>
+              <ul class="space-y-4 text-sm text-slate-400">
+                <li><a href="#" class="hover:text-white transition-colors flex items-center gap-2"><i data-lucide="linkedin" class="w-4 h-4"></i> LinkedIn</a></li>
+                <li><a href="#" class="hover:text-white transition-colors flex items-center gap-2"><i data-lucide="twitter" class="w-4 h-4"></i> Twitter</a></li>
+                <li><a href="#" class="hover:text-white transition-colors flex items-center gap-2"><i data-lucide="instagram" class="w-4 h-4"></i> Instagram</a></li>
+                <li><a href="#" class="hover:text-white transition-colors flex items-center gap-2"><i data-lucide="youtube" class="w-4 h-4"></i> YouTube</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Massive Brand Typography -->
+        <div class="relative overflow-hidden pt-12 pb-6">
+          <h1 class="footer-brand-text font-semibold text-center select-none tracking-tighter leading-none">
+            <span class="text-white">Route</span><span class="text-slate-700">Sphere</span>
+          </h1>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="max-w-[1400px] mx-auto px-6 pb-8">
+          <div class="flex flex-col md:flex-row justify-between items-center text-xs text-slate-600 gap-4">
+            <p>Copyright © 2024 RouteSphere Logistics Inc.</p>
+            <div class="flex gap-6">
+              <a href="#" class="hover:text-slate-400 transition-colors">Privacy policy</a>
+              <a href="#" class="hover:text-slate-400 transition-colors">Terms of service</a>
+              <a href="#" class="hover:text-slate-400 transition-colors">Cookie settings</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Initialize Icons
+      lucide.createIcons();
+
+      // Page Router
+      function switchPage(pageId) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+          const pages = document.querySelectorAll('.page-section');
+          const navLinks = document.querySelectorAll('.nav-link');
+
+          // Fade out
+          pages.forEach(page => {
+              page.classList.remove('active');
+              setTimeout(() => {
+                  if(!page.classList.contains('active')) page.style.display = 'none';
+              }, 500);
+          });
+
+          // Update Nav Styles
+          navLinks.forEach(link => {
+              link.classList.remove('text-slate-900');
+              if(link.getAttribute('onclick').includes(pageId)) {
+                  link.classList.add('text-slate-900');
+              }
+          });
+
+          // Show new page
+          const target = document.getElementById(pageId);
+          if(target) {
+              target.style.display = 'block';
+              // Slight delay to allow display:block to render before adding opacity class
+              setTimeout(() => {
+                  target.classList.add('active');
+                  // Re-trigger scroll animations for new content
+                  triggerScrollAnimations();
+                  // Re-initialize icons for new content
+                  lucide.createIcons();
+              }, 50);
+          }
+      }
+
+      // --- Intersection Observer for Scroll Animations ---
+      const observerOptions = {
+          threshold: 0.1,
+          rootMargin: "0px 0px -50px 0px"
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                  entry.target.classList.add('is-visible');
+              }
+          });
+      }, observerOptions);
+
+      function triggerScrollAnimations() {
+          document.querySelectorAll('.reveal-on-scroll').forEach((el) => observer.observe(el));
+      }
+
+      // Initial trigger
+      triggerScrollAnimations();
+
+      // Navbar Scroll Effect
+      window.addEventListener('scroll', () => {
+          const nav = document.getElementById('navbar');
+          if (window.scrollY > 50) {
+              nav.classList.add('shadow-sm');
+              nav.classList.replace('bg-white/80', 'bg-white/95');
+          } else {
+              nav.classList.remove('shadow-sm');
+              nav.classList.replace('bg-white/95', 'bg-white/80');
+          }
+      });
+    </script>
+  </body>
+</html>
